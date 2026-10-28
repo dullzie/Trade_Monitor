@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#080b12">
+<link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MT5 Monitor">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<title>MT5 Monitor — 4 Akun</title>
+<style>
+  :root{
+    --bg:#080b12; --bg2:#0d1220; --card:#111828; --card2:#0e1524;
+    --line:#1e2739; --line2:#28334a;
+    --txt:#eef3ff; --muted:#a7b6d1; --muted2:#8595b3;
+    --up:#2ee59d; --down:#ff5c6c; --warn:#ffb020; --accent:#38bdf8;
+    --shadow:0 10px 30px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 600px at 10% -10%, #12203a 0%, transparent 55%),
+      radial-gradient(900px 500px at 95% 0%, #16283a 0%, transparent 50%),
+      var(--bg);
+    color:var(--txt);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    min-height:100vh; padding:18px 18px 60px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+  .up{color:var(--up)} .down{color:var(--down)} .warn{color:var(--warn)} .mut{color:var(--muted)}
+  .wrap{max-width:1400px;margin:0 auto}
+
+  /* ---------- top bar ---------- */
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  .brand{display:flex;align-items:center;gap:11px;margin-right:auto}
+  .logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(145deg,#1b3a5c,#0d1a2b);
+        border:1px solid #23405e;display:grid;place-items:center}
+  .logo svg{width:20px;height:20px}
+  .brand h1{font-size:17px;margin:0;letter-spacing:.2px;font-weight:650}
+  .brand p{margin:2px 0 0;font-size:11.5px;color:var(--muted2);letter-spacing:.4px;text-transform:uppercase}
+  .pill{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:100px;
+        font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--card2)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--muted2)}
+  .pill.on{border-color:#1d4b3a;background:#0c2018;color:#5eead4}
+  .pill.on .dot{background:var(--up);box-shadow:0 0 0 3px rgba(46,229,157,.15)}
+  .pill.off{border-color:#4d1f26;background:#200d11;color:#ff8b97}
+  .pill.off .dot{background:var(--down)}
+  .pill.wait{border-color:#4a3a12;background:#1d1608;color:#ffc860}
+  .pill.wait .dot{background:var(--warn)}
+  .btn{border:1px solid var(--line2);background:var(--card);color:var(--txt);padding:9px 14px;
+       border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
+  .btn:hover{background:#182238;border-color:#37456a}
+  .btn.primary{background:linear-gradient(180deg,#0e7490,#0b5c74);border-color:#0e7490;color:#ecfeff}
+  .btn.primary:hover{filter:brightness(1.12)}
+  .btn.ghost{background:transparent}
+
+  /* ---------- summary ---------- */
+  .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:12px}
+  .tile{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);
+        border-radius:14px;padding:14px 16px;position:relative;overflow:hidden}
+  .tile:before{content:"";position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,transparent,#2b3c5c,transparent)}
+  .tile .lbl{font-size:11.5px;letter-spacing:.9px;text-transform:uppercase;color:var(--muted2);font-weight:700}
+  .tile .val{font-size:25px;font-weight:750;margin-top:7px;letter-spacing:-.4px}
+  .tile .sub{font-size:12.5px;color:var(--muted);margin-top:6px}
+
+  /* ---------- account cards ---------- */
+  .accounts{display:grid;grid-template-columns:repeat(auto-fit,minmax(278px,1fr));gap:13px;margin-bottom:20px}
+  .card{background:linear-gradient(180deg,var(--card),#0c1322);border:1px solid var(--line);border-radius:15px;
+        padding:15px 16px 12px;box-shadow:var(--shadow);position:relative;transition:.2s}
+  .card:hover{border-color:var(--line2);transform:translateY(-1px)}
+  .card.stale{border-color:#4a3a12}
+  .card.dead{border-color:#4d1f26;opacity:.85}
+  .card.dead:after{content:"";position:absolute;inset:0;border-radius:15px;background:repeating-linear-gradient(45deg,rgba(255,92,108,.03) 0 10px,transparent 10px 20px);pointer-events:none}
+  .ch{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .ch h3{margin:0;font-size:16.5px;font-weight:750;letter-spacing:.1px;line-height:1.2;color:#f4f8ff}
+  .ch .meta{font-size:12.5px;color:var(--muted2);margin-top:5px;letter-spacing:.2px}
+  .name-row{display:flex;align-items:center;gap:9px;min-width:0}
+  .name-row h3{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* --- status chip di samping nama akun --- */
+  .st{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 8px;border-radius:100px;
+      font-size:11.5px;font-weight:800;letter-spacing:.9px;border:1px solid;flex:none;line-height:1}
+  .st i{width:8px;height:8px;border-radius:50%;display:block;flex:none}
+  .st.on{color:#6ff2c4;background:#07281e;border-color:#1f7d5c}
+  .st.on i{background:#2ee59d;animation:pulse 2s ease-out infinite}
+  .st.pause{color:#ffd27a;background:#2a1e06;border-color:#7d5f18}
+  .st.pause i{background:#ffb020}
+  .st.off{color:#ffa3ac;background:#2b0b11;border-color:#8a2b36}
+  .st.off i{background:#ff5c6c}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,229,157,.55)}70%{box-shadow:0 0 0 6px rgba(46,229,157,0)}100%{box-shadow:0 0 0 0 rgba(46,229,157,0)}}
+
+  .per{border-top:1px solid var(--line);margin-top:11px;padding-top:8px}
+  .per .row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:3.5px 0}
+  .per .row span{color:var(--muted);font-size:12.5px;font-weight:600;white-space:nowrap}
+  .per .row span i{font-style:normal;font-size:11px;color:var(--muted2);margin-left:7px;font-weight:600}
+  .per .row b{font-size:15px;font-weight:750;letter-spacing:-.2px}
+
+  .tile.partial{border-color:#7d5f18;background:linear-gradient(180deg,#1c1708,#12100a)}
+  .tile.partial:before{background:linear-gradient(90deg,transparent,#8a6a1c,transparent)}
+  .warnmark{color:var(--warn);font-weight:750}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 13px;font-size:12.5px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center}
+  .legend i.d{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle}
+  .legend i.on{background:#2ee59d} .legend i.pause{background:#ffb020} .legend i.off{background:#ff5c6c}
+  .legend b{color:#dbe6f8;font-weight:700;margin-right:4px}
+
+  .bal{display:flex;align-items:baseline;justify-content:space-between;margin:14px 0 10px;gap:8px}
+  .bal .b1{font-size:26px;font-weight:750;letter-spacing:-.5px}
+  .bal .b1 small{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.6px;margin-left:4px}
+  .flt{text-align:right}
+  .flt .l{font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted2);font-weight:700}
+  .flt .v{font-size:16.5px;font-weight:750;margin-top:3px}
+
+  .kvs{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;border-top:1px solid var(--line);
+       padding-top:10px;margin-top:2px}
+  .kv{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;gap:6px}
+  .kv span{color:var(--muted);white-space:nowrap}
+  .kv b{font-weight:700;letter-spacing:-.1px;font-size:13.5px;color:#eef3ff}
+
+  .spark{height:26px;margin-top:8px;opacity:.85}
+  .cfoot{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);
+         margin-top:9px;border-top:1px solid var(--line);padding-top:9px;letter-spacing:.2px}
+  .cfoot b{color:#dbe6f8;font-weight:650}
+
+  /* ---------- positions ---------- */
+  .panel{background:linear-gradient(180deg,var(--card),#0b1120);border:1px solid var(--line);border-radius:15px;overflow:hidden}
+  .ph{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .ph h2{margin:0;font-size:14px;font-weight:650}
+  .ph .count{font-size:12px;color:var(--muted);background:#0b1626;border:1px solid var(--line2);
+             padding:2px 8px;border-radius:100px;font-weight:650}
+  .ph .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  thead th{position:sticky;top:0;background:#0d1526;color:var(--muted2);font-size:11px;letter-spacing:.7px;
+           text-transform:uppercase;font-weight:700;text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);
+           white-space:nowrap;cursor:default}
+  thead th.sortable{cursor:pointer;user-select:none}
+  thead th.sortable:hover{color:var(--accent)}
+  tbody td{padding:10px 12px;border-bottom:1px solid #131b2b;white-space:nowrap}
+  tbody tr:hover{background:#0f1a2c}
+  tbody tr:last-child td{border-bottom:none}
+  .side{font-size:11px;font-weight:800;padding:3px 8px;border-radius:5px;letter-spacing:.4px}
+  .side.buy{color:#062b1d;background:#2ee59d}
+  .side.sell{color:#2b060c;background:#ff5c6c}
+  .acctref{color:#c3d0e6;font-size:12.5px;max-width:170px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:bottom}
+  .empty{padding:34px 20px;text-align:center;color:var(--muted);font-size:13px}
+  .empty .big{font-size:30px;margin-bottom:8px;opacity:.6}
+
+  /* ---------- setup / banner ---------- */
+  .banner{background:linear-gradient(180deg,#141d30,#0e1524);border:1px solid #24405f;border-radius:14px;
+          padding:18px 20px;margin-bottom:16px}
+  .banner h2{margin:0 0 6px;font-size:15.5px}
+  .banner p{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.6}
+  .banner ol{margin:0 0 14px 18px;padding:0;color:var(--muted);font-size:13px;line-height:1.85}
+  .banner code{background:#0b1626;border:1px solid var(--line2);padding:1.5px 6px;border-radius:5px;
+               font-size:12px;color:#9fd4ff;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .err{background:#200d11;border:1px solid #4d1f26;color:#ffb3ba;padding:11px 14px;border-radius:11px;
+       font-size:12.5px;margin-bottom:14px;display:flex;gap:9px;align-items:flex-start}
+
+  /* ---------- modal ---------- */
+  .modal{position:fixed;inset:0;background:rgba(3,6,12,.78);backdrop-filter:blur(4px);
+         display:none;align-items:center;justify-content:center;padding:18px;z-index:60}
+  .modal.show{display:flex}
+  .sheet{background:linear-gradient(180deg,#121a2b,#0c1322);border:1px solid var(--line2);border-radius:16px;
+         width:100%;max-width:520px;box-shadow:0 24px 60px rgba(0,0,0,.6);overflow:hidden}
+  .sheet-h{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .sheet-h h3{margin:0;font-size:15px}
+  .sheet-b{padding:18px 20px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:11.5px;letter-spacing:.6px;text-transform:uppercase;
+               color:var(--muted2);font-weight:700;margin-bottom:6px}
+  .field input,.field select{width:100%;background:#0a1220;border:1px solid var(--line2);border-radius:9px;
+        padding:10px 12px;color:var(--txt);font-size:13px;font-family:inherit;outline:none}
+  .field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,189,248,.12)}
+  .field .hint{font-size:11px;color:var(--muted2);margin-top:5px;line-height:1.5}
+  .sheet-f{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap}
+  .testres{font-size:12px;padding:9px 12px;border-radius:9px;margin-bottom:14px;display:none}
+  .testres.ok{display:block;background:#0c2018;border:1px solid #1d4b3a;color:#5eead4}
+  .testres.bad{display:block;background:#200d11;border:1px solid #4d1f26;color:#ffb3ba}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);
+         background:#132033;border:1px solid var(--line2);color:var(--txt);padding:11px 18px;border-radius:11px;
+         font-size:13px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.25s;z-index:80}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media (max-width:860px){
+    .summary{grid-template-columns:1fr 1fr}
+    .tile .val{font-size:20px}
+    body{padding:14px 12px 50px}
+    .hide-sm{display:none}
+  }
+</style>
+<style id="pwaFix">@media (display-mode: standalone){body{padding-top:calc(18px + env(safe-area-inset-top));padding-bottom:calc(60px + env(safe-area-inset-bottom))}}</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="description" content="Dashboard monitoring akun MT5: status EA, balance, equity, posisi terbuka.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MT5 Monitor">
+<meta name="application-name" content="MT5 Monitor">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#7dd3fc" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 17l5-6 4 3 5-7 4 4"/><path d="M3 21h18"/>
+        </svg>
+      </div>
+      <div>
+        <h1>MT5 Monitor</h1>
+        <p>VPS &rarr; Dashboard Lokal</p>
+      </div>
+    </div>
+    <span id="connPill" class="pill"><span class="dot"></span><span id="connTxt">Menghubungkan…</span></span>
+    <span id="syncPill" class="pill hide-sm"><span class="dot"></span><span id="syncTxt">sync —</span></span>
+    <span id="clock" class="pill hide-sm num" style="color:var(--muted)">—</span>
+    <button class="btn" id="btnSettings">Pengaturan</button>
+    <button class="btn" id="btnInstall" style="display:none" >Install</button>
+    <button class="btn ghost" id="btnRefresh" title="Muat ulang sekarang">&#8635;</button>
+  </header>
+
+  <div id="errBox" class="err" style="display:none"></div>
+
+  <div id="setupBanner" class="banner" style="display:none">
+    <h2>Belum terhubung ke database</h2>
+    <p>Dashboard ini membaca data yang dikirim EA dari VPS. Isi URL Firebase dan token rahasia dulu:</p>
+    <ol>
+      <li>Klik <b>Pengaturan</b> di kanan atas.</li>
+      <li>Tempel <code>URL Realtime Database</code> (contoh: <code>https://proyek-anda-default-rtdb.firebaseio.com</code>).</li>
+      <li>Tempel <b>token rahasia</b> yang sama persis dengan yang dipakai di EA.</li>
+      <li>Klik <b>Tes koneksi</b>, lalu <b>Simpan</b>.</li>
+    </ol>
+    <button class="btn primary" onclick="openSettings()">Buka Pengaturan</button>
+  </div>
+
+  <div class="summary" id="summary"></div>
+  <div class="legend">
+    <span><i class="d on"></i><b>ON</b> EA mengirim data (≤ 40 detik)</span>
+    <span><i class="d pause"></i><b>PAUSE</b> data mulai tertinggal (41–120 detik)</span>
+    <span><i class="d off"></i><b>OFF</b> berhenti mengirim (&gt; 120 detik)</span>
+  </div>
+  <div class="accounts" id="accounts"></div>
+
+  <div class="panel">
+    <div class="ph">
+      <h2>Posisi Terbuka</h2>
+      <span class="count" id="posCount">0</span>
+      <div class="right">
+        <span class="mut" style="font-size:11.5px">Total floating</span>
+        <b id="posTotal" class="num">—</b>
+      </div>
+    </div>
+    <div id="posWrap">
+      <div class="empty"><div class="big">◎</div>Tidak ada posisi terbuka.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= modal ================= -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <div class="sheet-h">
+      <h3>Pengaturan Koneksi</h3>
+      <button class="btn ghost" style="padding:4px 10px" onclick="closeSettings()">&times;</button>
+    </div>
+    <div class="sheet-b">
+      <div class="field">
+        <label>URL Realtime Database</label>
+        <input id="inpUrl" placeholder="https://proyek-anda-default-rtdb.firebaseio.com" spellcheck="false">
+        <div class="hint">Ambil dari Firebase Console &rarr; Realtime Database. Tanpa garis miring di akhir.</div>
+      </div>
+      <div class="field">
+        <label>Token rahasia</label>
+        <div style="display:flex;gap:8px">
+          <input id="inpToken" placeholder="mis. mm-34f93339652d3b1d5bace418" spellcheck="false">
+          <button class="btn" id="btnGenToken" title="Buat token acak baru" style="white-space:nowrap">Acak</button>
+        </div>
+        <div class="hint">Harus sama dengan <code>InpToken</code> di EA. Ini kunci baca data Anda — jangan dibagikan. Tombol <b>Acak</b> membuat 24 karakter acak (aman).</div>
+      </div>
+      <div class="field">
+        <label>Interval pembaruan</label>
+        <select id="inpInt">
+          <option value="3000">3 detik</option>
+          <option value="5000" selected>5 detik</option>
+          <option value="10000">10 detik</option>
+          <option value="30000">30 detik</option>
+        </select>
+      </div>
+      <div id="testRes" class="testres"></div>
+    </div>
+    <div class="sheet-f">
+      <button class="btn ghost" id="btnTest">Tes koneksi</button>
+      <button class="btn" onclick="closeSettings()">Batal</button>
+      <button class="btn primary" id="btnSave">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const LS_KEY = "mt5dash.cfg.v1";
+const HIST_MAX = 60;
+// Isi di sini kalau ingin dashboard langsung terkonfigurasi (opsional).
+// Kosongkan untuk versi biasa yang diisi lewat menu Pengaturan.
+const BAKED = { url: "https://trade-monitor-f9112-default-rtdb.asia-southeast1.firebasedatabase.app", token: "mm-34f93339652d3b1d5bace418" };
+
+let cfg = { url: "", token: "", interval: 5000 };
+let data = null;            // objek akun dari firebase
+let hist = {};              // login -> array floating
+let timer = null, ticker = null;
+let online = null;          // null | true | false
+let lastOk = 0;
+let lastErr = "";
+let lastFetch = null;   // {status, bytes, at} untuk diagnosa
+let sortDir = 1;            // 1 = P/L terkecil dulu
+let firstLoad = true;
+const offlineSeen = new Set();
+
+/* ---------------- helpers ---------------- */
+const $ = id => document.getElementById(id);
+
+function fmtNum(v, dec = 2){
+  if(v === null || v === undefined || isNaN(v)) return "—";
+  return new Intl.NumberFormat("id-ID", { minimumFractionDigits: dec, maximumFractionDigits: dec }).format(v);
+}
+function fmtMoney(v, cur){
+  if(v === null || v === undefined || isNaN(v)) return "—";
+  const s = fmtNum(v);
+  return cur ? s + " " + cur : s;
+}
+function signed(v){
+  if(v === null || v === undefined || isNaN(v)) return "—";
+  return (v > 0 ? "+" : "") + fmtNum(v);
+}
+function cls(v){ if(v > 0.004) return "up"; if(v < -0.004) return "down"; return "mut"; }
+function esc(s){
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+function ago(ms){
+  if(!ms) return "—";
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if(s < 60) return s + "s lalu";
+  const m = Math.floor(s / 60);
+  if(m < 60) return m + "m " + (s % 60) + "s lalu";
+  const h = Math.floor(m / 60);
+  if(h < 24) return h + "j " + (m % 60) + "m lalu";
+  return Math.floor(h / 24) + "h lalu";
+}
+function stamp(ms){
+  if(!ms) return "—";
+  return new Date(ms).toLocaleTimeString("id-ID", { hour12: false });
+}
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+/* ---------------- config ---------------- */
+function loadCfg(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){
+      const o = JSON.parse(raw);
+      cfg.url = (o.url || "").trim();
+      cfg.token = (o.token || "").trim();
+      cfg.interval = +o.interval || 5000;
+    }
+  }catch(e){}
+  if(!cfg.url && new URLSearchParams(location.search).get("db"))
+    cfg.url = new URLSearchParams(location.search).get("db");
+  if(!cfg.url && BAKED.url) cfg.url = BAKED.url;
+  if(!cfg.token && BAKED.token) cfg.token = BAKED.token;
+}
+function saveCfg(){
+  localStorage.setItem(LS_KEY, JSON.stringify(cfg));
+}
+function normUrl(u){
+  u = (u || "").trim().replace(/\/+$/, "");
+  if(!u) return "";
+  if(!/^https?:\/\//i.test(u)) u = "https://" + u;
+  // kalau user menempel URL lengkap sampai /mt5/token, potong
+  const m = u.match(/^(https?:\/\/[^\/]+(?:\/[^\/]*firebasedatabase\.app)?)/i);
+  return m ? m[1] : u;
+}
+
+/* ---------------- settings UI ---------------- */
+function openSettings(){
+  $("inpUrl").value = cfg.url;
+  $("inpToken").value = cfg.token;
+  $("inpInt").value = String(cfg.interval);
+  const r = $("testRes"); r.className = "testres"; r.textContent = "";
+  $("modal").classList.add("show");
+  setTimeout(() => $("inpUrl").focus(), 60);
+}
+function closeSettings(){ $("modal").classList.remove("show"); }
+
+function readModal(){
+  return {
+    url: normUrl($("inpUrl").value),
+    token: ($("inpToken").value || "").trim(),
+    interval: +$("inpInt").value || 5000
+  };
+}
+function genToken(){
+  let hex = "";
+  try{
+    const b = new Uint8Array(12);
+    crypto.getRandomValues(b);
+    hex = Array.from(b).map(x => x.toString(16).padStart(2, "0")).join("");
+  }catch(e){
+    for(let i = 0; i < 24; i++) hex += Math.floor(Math.random() * 16).toString(16);
+  }
+  $("inpToken").value = "mm-" + hex;
+  $("inpToken").select();
+  toast("Token dibuat — salin ke InpToken di EA");
+}
+
+async function testConn(){
+  const c = readModal(), r = $("testRes");
+  r.className = "testres"; r.textContent = "Menguji…"; r.style.display = "block";
+  if(!c.url || !c.token){ r.className = "testres bad"; r.textContent = "URL dan token harus diisi."; return; }
+  try{
+    const res = await fetchJson(`${c.url}/mt5/${encodeURIComponent(c.token)}.json`);
+    if(res === null || (typeof res === "object" && Object.keys(res).length === 0)){
+      r.className = "testres ok";
+      r.textContent = "Terhubung. Koneksi & aturan database benar — belum ada data masuk (EA belum mengirim).";
+    }else{
+      const n = Object.keys(res).length;
+      r.className = "testres ok";
+      r.textContent = `Terhubung. Ditemukan ${n} akun mengirim data.`;
+    }
+  }catch(e){
+    r.className = "testres bad";
+    r.textContent = "Gagal: " + e.message;
+  }
+}
+
+/* ---------------- fetch ---------------- */
+async function fetchJson(url){
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 9000);
+  try{
+    const res = await fetch(url, { cache: "no-store", signal: ctrl.signal });
+    const txt = await res.text();
+    lastFetch = { status: res.status, bytes: txt.length, at: Date.now() };
+    // 204 = Firebase membalas "tidak ada isi" (mis. path token kosong)
+    if(res.status === 204) return null;
+    if(!res.ok){
+      let hint = "";
+      if(res.status === 401 || res.status === 403)
+        hint = " (aturan database menolak akses — cek Rules Firebase)";
+      if(res.status === 404) hint = " (URL database tidak ditemukan)";
+      throw new Error("HTTP " + res.status + hint + " " + txt.slice(0, 140));
+    }
+    if(!txt) return null;
+    try{ return JSON.parse(txt); }
+    catch(e){ throw new Error("Respons bukan JSON. Cek URL database."); }
+  }catch(e){
+    if(e.name === "AbortError") throw new Error("Timeout — tidak ada jawaban dari Firebase dalam 9 detik.");
+    throw e;
+  }finally{ clearTimeout(t); }
+}
+
+function setConn(state, msg){
+  online = state;
+  const p = $("connPill"), t = $("connTxt");
+  p.className = "pill " + (state === true ? "on" : state === false ? "off" : "wait");
+  t.textContent = state === true ? "Terhubung" : state === false ? "Terputus" : "Menghubungkan…";
+  updateSync();
+  if(state === false && msg){
+    const b = $("errBox");
+    b.style.display = "flex";
+    b.innerHTML = `<span>⚠</span><div><b>Tidak bisa mengambil data.</b><br>${esc(msg)}</div>`;
+  }else{
+    $("errBox").style.display = "none";
+  }
+}
+
+async function poll(){
+  clearTimeout(timer);
+  if(!cfg.url || !cfg.token){
+    setConn(null);
+    renderAll();
+    timer = setTimeout(poll, 4000);
+    return;
+  }
+  try{
+    const j = await fetchJson(`${cfg.url}/mt5/${encodeURIComponent(cfg.token)}.json`);
+    setConn(true);
+    lastOk = Date.now();
+    data = (j && typeof j === "object") ? j : {};
+    pushHist(accountsList());
+    renderAll();
+  }catch(e){
+    setConn(false, e.message);
+    renderAll();
+  }
+  timer = setTimeout(poll, cfg.interval);
+}
+
+/* ---------------- render ---------------- */
+function accountsList(){
+  if(!data) return [];
+  return Object.keys(data)
+    .map(k => data[k])
+    .filter(a => a && typeof a === "object" && (a.login !== undefined || a.balance !== undefined))
+    .map(a => {
+      if(!a.login) a.login = Object.keys(data).find(k => data[k] === a) || 0;
+      return a;
+    })
+    .sort((x, y) => String(x.label || x.login).localeCompare(String(y.label || y.login), "id"));
+}
+
+function updateSync(){
+  const p = $("syncPill"), t = $("syncTxt");
+  if(!p || !t) return;
+  if(online === false){
+    p.className = "pill off";
+    t.textContent = "gagal ambil data";
+    return;
+  }
+  if(!lastOk){
+    p.className = "pill wait";
+    t.textContent = "sync —";
+    return;
+  }
+  const sec = Math.max(0, Math.round((Date.now() - lastOk) / 1000));
+  const lim = Math.max(15, Math.ceil(cfg.interval / 1000) * 3);
+  p.className = "pill " + (sec <= lim ? "on" : sec <= lim * 4 ? "wait" : "off");
+  t.textContent = "sync " + sec + "s lalu";
+}
+
+function statusOf(a){
+  const hb = a.heartbeatMs || (a.heartbeat ? a.heartbeat * 1000 : 0);
+  const age = hb ? Math.max(0, (Date.now() - hb) / 1000) : 1e9;
+  const limit = Math.max(45, (a.pushSec || 10) * 4);
+  if(age <= limit)   return { k: "live", chip: "on",    label: "ON",    age: age };
+  if(age <= limit*3) return { k: "late", chip: "pause", label: "PAUSE", age: age };
+  return                    { k: "dead", chip: "off",   label: "OFF",   age: age };
+}
+
+function pushHist(list){
+  list.forEach(a => {
+    const k = String(a.login);
+    const h = hist[k] = hist[k] || [];
+    h.push(+a.floating || 0);
+    while(h.length > HIST_MAX) h.shift();
+  });
+}
+
+function perRow(label, p){
+  const ok = p && typeof p.net === "number";
+  const net = ok ? p.net : null;
+  const tr = (ok && p.trades) ? p.trades + " tr" : "";
+  const tip = ok ? "" : ' title="EA akun ini masih versi lama — periode ini belum dikirim. Recompile dengan AccountReporter.mqh v1.10."';
+  return `<div class="row"${tip}><span>${label}${tr ? `<i>${tr}</i>` : ""}</span>`
+       + `<b class="num ${net === null ? "mut" : cls(net)}">${net === null ? "—" : signed(net)}</b></div>`;
+}
+
+function aggPeriod(list, key){
+  let net = 0, trades = 0, wins = 0, losses = 0, n = 0;
+  list.forEach(a => {
+    const p = a[key];
+    if(p && typeof p.net === "number"){
+      n++;
+      net += p.net; trades += (+p.trades || 0); wins += (+p.wins || 0); losses += (+p.losses || 0);
+    }
+  });
+  return { net, trades, wins, losses, n, have: n > 0 };
+}
+
+function periodTile(title, agg, total, opt){
+  const wr = agg.trades > 0 ? (agg.wins / agg.trades * 100) : null;
+  const partial = agg.have && agg.n < total;
+  const tip = partial
+    ? `title="Angka ini BELUM LENGKAP: hanya ${agg.n} dari ${total} akun yang mengirim data periode ini (sisanya masih EA versi lama)"`
+    : "";
+  return `
+    <div class="tile ${partial ? "partial" : ""}" ${tip}>
+      <div class="lbl">${title}${partial ? ' <span class="warnmark">⚠</span>' : ""}</div>
+      <div class="val num ${agg.have ? cls(agg.net) : "mut"}">${agg.have ? signed(agg.net) : "—"}</div>
+      <div class="sub">${agg.have
+        ? agg.trades + " trade" + (wr === null ? "" : " &middot; winrate " + fmtNum(wr, 1) + "%")
+          + (opt ? " &middot; " + opt : "")
+          + (partial ? ' &middot; <span class="warnmark">' + agg.n + "/" + total + " akun</span>" : "")
+        : "menunggu data EA versi baru"}</div>
+    </div>`;
+}
+
+function renderSummary(list){
+  const sumBal = list.reduce((s, a) => s + (+a.balance || 0), 0);
+  const sumFlt = list.reduce((s, a) => s + (+a.floating || 0), 0);
+  const nLive = list.filter(a => statusOf(a).k === "live").length;
+  const nPause = list.filter(a => statusOf(a).k === "late").length;
+  const nOff = list.filter(a => statusOf(a).k === "dead").length;
+  const cur = (list[0] && list[0].currency) || "";
+  const nPos = list.reduce((s, a) => s + (+a.openCount || 0), 0);
+
+  $("summary").innerHTML = `
+    <div class="tile">
+      <div class="lbl">Total Balance</div>
+      <div class="val num">${fmtNum(sumBal)} <small style="font-size:12px;color:var(--muted2)">${esc(cur)}</small></div>
+      <div class="sub">${list.length} akun terhubung</div>
+    </div>
+    <div class="tile">
+      <div class="lbl">Floating P/L</div>
+      <div class="val num ${cls(sumFlt)}">${signed(sumFlt)}</div>
+      <div class="sub">${nPos} posisi terbuka</div>
+    </div>
+    ${periodTile("Profit Hari Ini", aggPeriod(list, "today"), list.length, "")}
+    ${periodTile("Profit Minggu Ini", aggPeriod(list, "week"), list.length, "sejak Senin")}
+    ${periodTile("Profit Bulan Ini", aggPeriod(list, "month"), list.length, "sejak tgl 1")}
+    <div class="tile">
+      <div class="lbl">Status EA</div>
+      <div class="val num ${nLive === list.length && list.length ? "up" : nLive ? "warn" : "down"}">${nLive}/${list.length || 0} <span style="font-size:13px;font-weight:700;letter-spacing:.6px">ON</span></div>
+      <div class="sub">${nLive} ON &middot; ${nPause} PAUSE &middot; ${nOff} OFF</div>
+    </div>`;
+}
+
+function sparkline(arr){
+  if(!arr || arr.length < 2) return "";
+  const w = 240, h = 26, pad = 2;
+  const min = Math.min(...arr), max = Math.max(...arr);
+  const span = (max - min) || 1;
+  const pts = arr.map((v, i) => {
+    const x = pad + (i / (arr.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - min) / span) * (h - pad * 2);
+    return x.toFixed(1) + "," + y.toFixed(1);
+  });
+  const col = arr[arr.length - 1] >= 0 ? "var(--up)" : "var(--down)";
+  const base = min <= 0 && max >= 0
+    ? (h - pad - ((0 - min) / span) * (h - pad * 2)).toFixed(1) : null;
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" width="100%" height="26">
+    ${base ? `<line x1="0" y1="${base}" x2="${w}" y2="${base}" stroke="#2a3752" stroke-width="1" stroke-dasharray="3 4"/>` : ""}
+    <polyline fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round" points="${pts.join(" ")}"/>
+  </svg>`;
+}
+
+function renderAccounts(list){
+  if(!list.length){
+    $("accounts").innerHTML = "";
+    return;
+  }
+  const html = list.map(a => {
+    const st = statusOf(a);
+    const hb = a.heartbeatMs || (a.heartbeat ? a.heartbeat * 1000 : 0);
+    const t = a.today || {};
+    const wr = (t.trades > 0) ? (t.wins / t.trades * 100) : null;
+    const cur = a.currency || "";
+    const key = String(a.login);
+    const h = hist[key] || [];
+
+    const cardCls = st.k === "dead" ? "dead" : st.k === "late" ? "stale" : "";
+    return `
+    <div class="card ${cardCls}">
+      <div class="ch">
+        <div style="min-width:0;flex:1">
+          <div class="name-row">
+            <h3 title="${esc(a.label || ("Akun " + a.login))}">${esc(a.label || ("Akun " + a.login))}</h3>
+            <span class="st ${st.chip}" title="${st.k === "live" ? "EA mengirim data " + ago(hb) : "EA berhenti mengirim data sejak " + ago(hb) + " — angka di kartu ini adalah data terakhir, bukan harga sekarang"}"><i></i>${st.label}</span>
+          </div>
+          <div class="meta">${esc(a.broker || "")} &middot; #${esc(a.login)} &middot; ${a.type === "DEMO" ? "akun demo" : "akun real"}</div>
+        </div>
+      </div>
+
+      <div class="bal">
+        <div>
+          <div class="l" style="font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted2);font-weight:600">Balance</div>
+          <div class="b1 num">${fmtNum(+a.balance || 0)}<small>${esc(cur)}</small></div>
+        </div>
+        <div class="flt">
+          <div class="l">Floating</div>
+          <div class="v num ${cls(+a.floating || 0)}">${signed(+a.floating || 0)}</div>
+        </div>
+      </div>
+
+      <div class="per">
+        ${perRow("Hari ini", a.today)}
+        ${perRow("Minggu ini", a.week)}
+        ${perRow("Bulan ini", a.month)}
+      </div>
+
+      <div class="kvs">
+        <div class="kv"><span>Winrate hari ini</span><b class="num">${wr === null ? "—" : fmtNum(wr, 1) + "%"}</b></div>
+        <div class="kv"><span>Posisi</span><b class="num">${a.openCount || 0}</b></div>
+        <div class="kv"><span>Lot buy</span><b class="num">${fmtNum(+a.buyLots || 0, 2)}</b></div>
+        <div class="kv"><span>Lot sell</span><b class="num">${fmtNum(+a.sellLots || 0, 2)}</b></div>
+      </div>
+
+      ${sparkline(h)}
+
+      <div class="cfoot">
+        <span><b>${esc(a.ea || "EA")}</b></span>
+        <span class="num ${st.k === "live" ? "" : st.k === "late" ? "warn" : "down"}">${st.k === "dead" ? "data terakhir " + ago(hb) : "update " + stamp(hb)}</span>
+      </div>
+    </div>`;
+  }).join("");
+  $("accounts").innerHTML = html;
+
+  // deteksi akun yang baru mati
+  list.forEach(a => {
+    const st = statusOf(a).k, k = String(a.login);
+    if(st === "dead" && !offlineSeen.has(k)){
+      offlineSeen.add(k);
+      if(!firstLoad) toast("⚠ EA akun #" + a.login + " berhenti mengirim data");
+    }
+    if(st !== "dead") offlineSeen.delete(k);
+  });
+}
+
+function renderPositions(list){
+  const rows = [];
+  list.forEach(a => {
+    (a.positions || []).forEach(p => {
+      rows.push(Object.assign({ _acct: a.label || ("#" + a.login), _cur: a.currency || "" }, p));
+    });
+  });
+  rows.sort((x, y) => sortDir * ((+x.profit || 0) - (+y.profit || 0)));
+
+  const total = rows.reduce((s, r) => s + (+r.profit || 0) + (+r.swap || 0), 0);
+  $("posCount").textContent = rows.length;
+  $("posTotal").textContent = signed(total);
+  $("posTotal").className = "num " + cls(total);
+
+  if(!rows.length){
+    $("posWrap").innerHTML = `<div class="empty"><div class="big">◎</div>Tidak ada posisi terbuka.</div>`;
+    return;
+  }
+
+  const body = rows.map(r => {
+    const pl = (+r.profit || 0) + (+r.swap || 0);
+    const d = String(r.open).includes(".") ? String(r.open).split(".")[1].length : 2;
+    const time = r.openTime ? new Date(r.openTime * 1000).toLocaleTimeString("id-ID", { hour12: false }).slice(0, 5) : "—";
+    return `<tr>
+      <td><span class="acctref" title="${esc(r._acct)}">${esc(r._acct)}</span></td>
+      <td><b>${esc(r.symbol)}</b></td>
+      <td><span class="side ${String(r.side).toLowerCase()}">${esc(r.side)}</span></td>
+      <td class="num">${fmtNum(+r.lots || 0, 2)}</td>
+      <td class="num mut">${fmtNum(+r.open, d)}</td>
+      <td class="num">${fmtNum(+r.price, d)}</td>
+      <td class="num mut">${(+r.sl > 0) ? fmtNum(+r.sl, d) : "—"}</td>
+      <td class="num mut">${(+r.tp > 0) ? fmtNum(+r.tp, d) : "—"}</td>
+      <td class="num mut">${time}</td>
+      <td class="num ${cls(pl)}"><b>${signed(pl)}</b></td>
+    </tr>`;
+  }).join("");
+
+  $("posWrap").innerHTML = `<div style="overflow:auto">
+    <table>
+      <thead><tr>
+        <th>Akun</th><th>Simbol</th><th>Arah</th><th>Lot</th><th>Open</th><th>Harga</th>
+        <th class="hide-sm">SL</th><th class="hide-sm">TP</th><th class="hide-sm">Jam</th>
+        <th class="sortable" id="thPl">P/L ${sortDir === 1 ? "▲" : "▼"}</th>
+      </tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>`;
+
+  const th = $("thPl");
+  if(th) th.onclick = () => { sortDir *= -1; renderPositions(accountsList()); };
+}
+
+function renderAll(){
+  const list = accountsList();
+  const hasCfg = !!(cfg.url && cfg.token);
+  $("setupBanner").style.display = hasCfg ? "none" : "block";
+  renderSummary(list);
+  renderAccounts(list);
+  renderPositions(list);
+  if(!list.length && hasCfg){
+    $("accounts").innerHTML = `<div class="banner" style="grid-column:1/-1">
+      <h2>Menunggu data dari EA…</h2>
+      <p>Koneksi ke database berhasil, tetapi belum ada akun yang mengirim data. Periksa:</p>
+      <ol>
+        <li>EA sudah terpasang di chart dan <b>Algo Trading aktif</b> (tombol hijau di toolbar).</li>
+        <li>URL <code>${esc(cfg.url)}</code> sudah ditambahkan di <code>Tools &rarr; Options &rarr; Expert Advisors &rarr; Allow WebRequest</code>.</li>
+        <li>Tab <b>Experts</b> di terminal tidak menampilkan <code>ERROR 4060</code> atau <code>HTTP 401/403</code>.</li>
+        <li><code>InpToken</code> di EA sama persis dengan token di Pengaturan ini.</li>
+      </ol>
+      <p id="diag" class="mut" style="font-size:12px;margin:0"></p>
+    </div>`;
+    const dg = $("diag");
+    if(dg){
+      if(lastFetch){
+        dg.innerHTML = `Diagnosa: <code>${esc(cfg.url)}/mt5/${esc(cfg.token)}.json</code> → HTTP ${lastFetch.status}, ${lastFetch.bytes} byte, ${ago(lastFetch.at)}`
+          + (lastFetch.status === 204 || lastFetch.bytes === 0
+              ? " &nbsp;— <b>respons kosong: URL/token tidak cocok atau path belum berisi.</b>"
+              : " &nbsp;— <b>data ada tapi tidak ada akun yang dikenali.</b>");
+      }else{
+        dg.textContent = "Diagnosa: belum ada respons dari database.";
+      }
+    }
+  }
+  firstLoad = false;
+  updateTitle(list);
+}
+
+function updateTitle(list){
+  const dead = list.filter(a => statusOf(a).k === "dead").length;
+  document.title = (dead ? `(${dead} mati) ` : "") + "MT5 Monitor — " + list.length + " akun";
+}
+
+/* ---------------- boot ---------------- */
+function startTicker(){
+  clearInterval(ticker);
+  ticker = setInterval(() => {
+    $("clock").textContent = new Date().toLocaleTimeString("id-ID", { hour12: false });
+    updateSync();
+    if(data) updateTitle(accountsList());
+  }, 1000);
+}
+
+$("btnSettings").onclick = openSettings;
+$("btnRefresh").onclick = () => { poll(); toast("Menyegarkan…"); };
+$("btnSave").onclick = () => {
+  cfg = readModal();
+  saveCfg();
+  closeSettings();
+  data = null; hist = {}; firstLoad = true; offlineSeen.clear();
+  toast("Pengaturan disimpan");
+  poll();
+};
+$("btnTest").onclick = testConn;
+$("btnGenToken").onclick = genToken;
+$("modal").addEventListener("click", e => { if(e.target.id === "modal") closeSettings(); });
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape") closeSettings();
+  if(e.key === "r" && (e.ctrlKey || e.metaKey)) return;
+});
+
+loadCfg();
+startTicker();
+poll();
+
+/* ---------------- PWA: service worker + install prompt ---------------- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstall = e;
+  const b = document.getElementById('btnInstall');
+  if (b) b.style.display = 'inline-flex';
+});
+const installBtn = document.getElementById('btnInstall');
+if (installBtn) {
+  installBtn.addEventListener('click', async () => {
+    if (!deferredInstall) return;
+    deferredInstall.prompt();
+    await deferredInstall.userChoice.catch(() => null);
+    deferredInstall = null;
+    installBtn.style.display = 'none';
+  });
+}
+window.addEventListener('appinstalled', () => {
+  deferredInstall = null;
+  const b = document.getElementById('btnInstall');
+  if (b) b.style.display = 'none';
+});
+</script>
+</body>
+</html>
