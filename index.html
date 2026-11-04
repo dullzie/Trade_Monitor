@@ -122,6 +122,21 @@
                         <span class="text-slate-400">Lot Buy / Sell:</span> 
                         <span class="font-semibold text-slate-300"><span id="lot-buy" class="text-green-400">0.00</span> / <span id="lot-sell" class="text-red-400">0.00</span></span>
                     </div>
+                    
+                    <!-- ✅ FITUR BARU: Batas SL 30% & Jarak Aman -->
+                    <div class="pt-3 border-t border-slate-800 bg-[#0b1120] p-3 rounded-lg border border-slate-800">
+                        <p class="text-[10px] text-slate-500 uppercase font-bold mb-2 flex items-center gap-1">
+                            <i class="fa-solid fa-shield-halved text-red-400"></i> Manajemen Risiko (SL 30%)
+                        </p>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs text-slate-400">Batas Maks Loss:</span>
+                            <span class="text-xs font-bold text-red-400" id="acc-sl-limit">---</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-slate-400">Jarak Aman:</span>
+                            <span class="text-xs font-bold text-green-400" id="acc-sl-buffer">---</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -345,6 +360,21 @@
             if (mLevel >= 1000) mEl.classList.add('margin-safe');
             else if (mLevel >= 500) mEl.classList.add('margin-warn');
             else mEl.classList.add('margin-danger');
+
+            // ✅ FITUR BARU: Batas SL 30% & Jarak Aman
+            const bal = data.balance || 0;
+            const sl30Limit = -(bal * 0.30); // Batas loss maksimal (negatif)
+            const bufferAmount = Math.abs(sl30Limit) - Math.abs(fl); // Jarak aman tersisa
+            
+            document.getElementById('acc-sl-limit').innerText = formatMoney(sl30Limit);
+            const bufferEl = document.getElementById('acc-sl-buffer');
+            bufferEl.innerText = formatMoney(bufferAmount);
+            
+            // Warna dinamis untuk Jarak Aman
+            bufferEl.className = 'text-xs font-bold ';
+            if (bufferAmount > 100) bufferEl.classList.add('text-green-400');
+            else if (bufferAmount > 50) bufferEl.classList.add('text-yellow-400');
+            else bufferEl.classList.add('text-red-400', 'pulse');
 
             // ✅ FITUR 2: Riwayat Saldo Withdraw (Tanpa Deposit)
             const historyList = document.getElementById('withdraw-history-list');
